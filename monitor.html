@@ -2,37 +2,98 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>传感器监控界面</title>
+    <title>My ESP32 Devices</title>
     <style>
-        body { font-family: Arial; margin: 20px; }
-        .status-online { color: #4CAF50; font-weight: bold; }
-        .status-offline { color: #F44336; font-weight: bold; }
+        /* 卡片容器样式 */
+        .device-card {
+            width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-family: Arial, sans-serif;
+        }
+        /* UUID标题栏 */
+        .uuid-header {
+            background: #f0f7ff;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .uuid-header strong {
+            color: #333;
+        }
+        /* 设备信息列表 */
+        .device-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            font-size: 14px;
+            color: #555;
+        }
+        /* 设备链接样式 */
+        .device-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .device-link:hover {
+            text-decoration: underline;
+        }
+        /* 状态样式 */
+        .status-online {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-offline {
+            color: #dc3545;
+            font-weight: bold;
+        }
     </style>
 </head>
-<body>
-    <div>User UUID: <span id="user-uuid">1CDBD4-C557-C81BB1</span></div>
-    <div>Device: <span id="device">ESP32C3-82989</span></div>
-    <div>Temperature: <span id="temperature">28.88°C (阈值30.00°C)</span></div>
-    <div>Humidity: <span id="humidity">26.09% (阈值70.00%)</span></div>
-    <div>WiFi Signal: <span id="wifi-signal">-32 dBm</span></div>
-    <div>Status: <span id="status" class="status-offline">offline</span></div>
-    <div>Last Update: <span id="last-update">2026/1/13 14:43:52</span></div>
+<body style="background: #f5f5f5;">
+    <div class="device-card">
+        <h2 style="text-align: center; color: #333; margin-top: 0;">My ESP32 Devices</h2>
+        <div class="uuid-header">
+            <strong>User UUID:</strong> 1CDBD4-C557-C81B85-8EE-ED719
+        </div>
+        <div class="device-info">
+            <div>Device:</div>
+            <div><a href="#" class="device-link">1CDBD4-C557-C832A-178C-30DE8</a></div>
+            
+            <div>Temperature:</div>
+            <div>26.03 °C (Threshold: 30.00 °C)</div>
+            
+            <div>Humidity:</div>
+            <div>30.97 % (Threshold: 70.00 %)</div>
+            
+            <div>WiFi Signal:</div>
+            <div>-34 dBm</div>
+            
+            <div>Status:</div>
+            <div id="status" class="status-online">online</div>
+            
+            <div>Last Update:</div>
+            <div id="last-update">2026/1/13 12:44:35</div>
+        </div>
+    </div>
 
     <script>
-        // 修复时间解析逻辑：适配“2026/1/13 14:43:52”格式
+        // 基于Last Update判断在线状态（1分钟内=online）
         function updateOnlineStatus() {
             const lastUpdateStr = document.getElementById("last-update").textContent;
-            // 拆分日期和时间："2026/1/13" → 年/月/日；"14:43:52" → 时:分:秒
+            // 解析日期格式：2026/1/13 12:44:35
             const [datePart, timePart] = lastUpdateStr.split(' ');
             const [year, month, day] = datePart.split('/').map(Number);
             const [hour, minute, second] = timePart.split(':').map(Number);
-            // 构建Date对象（注意：月份是0开始，所以要-1）
             const lastUpdate = new Date(year, month - 1, day, hour, minute, second);
             const now = new Date();
-            const timeDiff = now - lastUpdate; // 时间差（毫秒）
+            const timeDiff = now - lastUpdate;
 
             const statusEl = document.getElementById("status");
-            if (timeDiff <= 60 * 1000) { // 1分钟内有更新 → online
+            if (timeDiff <= 60 * 1000) {
                 statusEl.textContent = "online";
                 statusEl.className = "status-online";
             } else {
@@ -41,7 +102,7 @@
             }
         }
 
-        // 初始化执行 + 每5秒刷新一次
+        // 初始化+5秒刷新一次
         updateOnlineStatus();
         setInterval(updateOnlineStatus, 5 * 1000);
     </script>
