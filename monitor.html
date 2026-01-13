@@ -1,63 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>ESP32 监控界面</title>
-  <style>
-    .status-online { color: #4CAF50; font-weight: bold; }
-    .status-offline { color: #F44336; font-weight: bold; }
-    .device-info { margin: 20px; font-family: Arial; }
-    .info-item { margin: 10px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <title>传感器监控界面</title>
+    <style>
+        /* 保留原界面的基础样式，避免结构混乱 */
+        body { font-family: Arial; margin: 20px; }
+        .status-online { color: #4CAF50; font-weight: bold; }
+        .status-offline { color: #F44336; font-weight: bold; }
+    </style>
 </head>
 <body>
-  <div class="device-info">
-    <div class="info-item">User UUID: <span id="user-uuid">1CDBD4-C557-C81BB1</span></div>
-    <div class="info-item">Device: <span id="device">ESP32C3-82989</span></div>
-    <div class="info-item">Temperature: <span id="temp">28.88°C (阈值30.00°C)</span></div>
-    <div class="info-item">Humidity: <span id="hum">26.09% (阈值70.00%)</span></div>
-    <div class="info-item">WiFi Signal: <span id="wifi-signal">-32 dBm</span></div>
-    <div class="info-item">Status: <span id="status" class="status-offline">offline</span></div>
-    <div class="info-item">Last Update: <span id="last-update">2026/1/13 14:43:52</span></div>
-  </div>
+    <!-- 保留原界面的内容结构 -->
+    <div>User UUID: <span id="user-uuid">1CDBD4-C557-C81BB1</span></div>
+    <div>Device: <span id="device">ESP32C3-82989</span></div>
+    <div>Temperature: <span id="temperature">28.88°C (阈值30.00°C)</span></div>
+    <div>Humidity: <span id="humidity">26.09% (阈值70.00%)</span></div>
+    <div>WiFi Signal: <span id="wifi-signal">-32 dBm</span></div>
+    <div>Status: <span id="status" class="status-offline">offline</span></div>
+    <div>Last Update: <span id="last-update">2026/1/13 14:43:52</span></div>
 
-  <script>
-    // 在线判断阈值：1分钟（60000毫秒）
-    const ONLINE_THRESHOLD = 60 * 1000;
+    <script>
+        // 1. 基于Last Update判断在线状态（1分钟内=online）
+        function updateOnlineStatus() {
+            const lastUpdateStr = document.getElementById("last-update").textContent;
+            const lastUpdate = new Date(lastUpdateStr.replace(/\//g, '-'));
+            const now = new Date();
+            const timeDiff = now - lastUpdate; // 时间差（毫秒）
+            
+            const statusEl = document.getElementById("status");
+            if (timeDiff <= 60 * 1000) { // 1分钟内
+                statusEl.textContent = "online";
+                statusEl.className = "status-online";
+            } else {
+                statusEl.textContent = "offline";
+                statusEl.className = "status-offline";
+            }
+        }
 
-    // 解析时间字符串为Date对象
-    function parseUpdateTime(timeStr) {
-      // 处理 "2026/1/13 14:43:52" 格式
-      return new Date(timeStr.replace(/\//g, '-'));
-    }
-
-    // 判断在线状态
-    function checkOnlineStatus(lastUpdateTimeStr) {
-      if (!lastUpdateTimeStr) return "offline";
-      
-      const lastUpdate = parseUpdateTime(lastUpdateTimeStr);
-      const now = new Date();
-      const timeDiff = now - lastUpdate;
-
-      return timeDiff <= ONLINE_THRESHOLD ? "online" : "offline";
-    }
-
-    // 更新界面状态
-    function updateStatus() {
-      // 获取页面上的最后更新时间
-      const lastUpdateStr = document.getElementById("last-update").innerText;
-      // 计算在线状态
-      const status = checkOnlineStatus(lastUpdateStr);
-      // 更新状态文本和样式
-      const statusElement = document.getElementById("status");
-      statusElement.innerText = status;
-      statusElement.className = status === "online" ? "status-online" : "status-offline";
-    }
-
-    // 初始化执行一次
-    updateStatus();
-    // 每10秒刷新一次状态（可选）
-    setInterval(updateStatus, 10 * 1000);
-  </script>
+        // 2. 初始化执行+定时刷新
+        updateOnlineStatus();
+        setInterval(updateOnlineStatus, 10 * 1000); // 每10秒刷新状态
+    </script>
 </body>
 </html>
