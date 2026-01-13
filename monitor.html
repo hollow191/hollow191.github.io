@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <title>传感器监控界面</title>
     <style>
-        /* 保留原界面的基础样式，避免结构混乱 */
         body { font-family: Arial; margin: 20px; }
         .status-online { color: #4CAF50; font-weight: bold; }
         .status-offline { color: #F44336; font-weight: bold; }
     </style>
 </head>
 <body>
-    <!-- 保留原界面的内容结构 -->
     <div>User UUID: <span id="user-uuid">1CDBD4-C557-C81BB1</span></div>
     <div>Device: <span id="device">ESP32C3-82989</span></div>
     <div>Temperature: <span id="temperature">28.88°C (阈值30.00°C)</span></div>
@@ -21,15 +19,20 @@
     <div>Last Update: <span id="last-update">2026/1/13 14:43:52</span></div>
 
     <script>
-        // 1. 基于Last Update判断在线状态（1分钟内=online）
+        // 修复时间解析逻辑：适配“2026/1/13 14:43:52”格式
         function updateOnlineStatus() {
             const lastUpdateStr = document.getElementById("last-update").textContent;
-            const lastUpdate = new Date(lastUpdateStr.replace(/\//g, '-'));
+            // 拆分日期和时间："2026/1/13" → 年/月/日；"14:43:52" → 时:分:秒
+            const [datePart, timePart] = lastUpdateStr.split(' ');
+            const [year, month, day] = datePart.split('/').map(Number);
+            const [hour, minute, second] = timePart.split(':').map(Number);
+            // 构建Date对象（注意：月份是0开始，所以要-1）
+            const lastUpdate = new Date(year, month - 1, day, hour, minute, second);
             const now = new Date();
             const timeDiff = now - lastUpdate; // 时间差（毫秒）
-            
+
             const statusEl = document.getElementById("status");
-            if (timeDiff <= 60 * 1000) { // 1分钟内
+            if (timeDiff <= 60 * 1000) { // 1分钟内有更新 → online
                 statusEl.textContent = "online";
                 statusEl.className = "status-online";
             } else {
@@ -38,9 +41,9 @@
             }
         }
 
-        // 2. 初始化执行+定时刷新
+        // 初始化执行 + 每5秒刷新一次
         updateOnlineStatus();
-        setInterval(updateOnlineStatus, 10 * 1000); // 每10秒刷新状态
+        setInterval(updateOnlineStatus, 5 * 1000);
     </script>
 </body>
 </html>
