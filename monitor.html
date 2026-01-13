@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Device Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: #f5f5f5; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; text-align: center; margin-bottom: 20px; }
+        .user-box { padding: 15px; background: #f0f8ff; border-radius: 5px; margin-bottom: 20px; word-break: break-all; }
+        .device-card { padding: 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; }
+        .device-title { font-weight: bold; color: #2196F3; margin-bottom: 10px; }
+        .device-data { display: flex; justify-content: space-between; margin: 5px 0; }
+        .online { color: #4CAF50; }
+        .offline { color: #f44336; }
+        .loading { text-align: center; color: #999; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>My ESP32 Devices</h2>
+        <div class="user-box">
+            <strong>User UUID:</strong> <span id="userUUID">Loading...</span>
+        </div>
+        <div class="loading" id="loading">Loading your devices...</div>
+        <div id="deviceList"></div>
+    </div>
+
+    <script>
+        // ===================== THINGSPEAK 配置（已填入你的信息） =====================
+        const THINGSPEAK_READ_KEY = "3RJ5JFAE3U1CE6HU";
+        const THINGSPEAK_CHANNEL_ID = "3226781";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const userUUID = urlParams.get('user') || "";
+        document.getElementById('userUUID').textContent = userUUID || "No User UUID";
+
+        function loadDevices() {
+            if (!userUUID) {
+                document.getElementById('loading').textContent = "Error: No User UUID";
+                return;
+            }
+
+            fetch(`https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds.json?api_key=${THINGSPEAK_READ_KEY}&results=200`)
+            .then(res => res.json())
+            .then(data => {
+                const userFeeds = data.feeds.filter(feed => feed.field1 === userUUID);
+                if (userFeeds.length === 0) {
+                    document.getElementById('loading').textContent = "No devices found";
+                    return;
+                }
+
+                const deviceMap = {};
+                userFeeds.forEach(feed => {
+                    const devUUID = feed.field2;
+                    if (!deviceMap[devUUID] || new Date(feed.created_at) > new Date(deviceMap[devUUID].created_at)) {
+                        deviceMap[devUUID] = feed;
+                    }
+                });
+
+                let html = "";
+                Object.values(deviceMap).forEach(feed => {
+                    const status = feed.field8 === "online" ? "online" : "offline";
+                    html += `
+                    <div class="device-card">
+                        <div class="device-title">Device: ${feed.field2 || "Unknown"}</div>
+                        <div class="device-data">
+                            <span>Temperature:</span>
+                            <span>${feed.field3 || "--"} °C (Threshold: ${feed.field5 || 30} °C)</span>
+                        </div>
+                        <div class="device-data">
+                            <span>Humidity:</span>
+                            <span>${feed.field4 || "--"} % (Threshold: ${feed.field6 || 70} %)</span>
+                        </div>
+                        <div class="device-data">
+                            <span>WiFi Signal:</span>
+                            <span>${feed.field7 || "--"} dBm</span>
+                        </div>
+                        <div class="device-data">
+                            <span>Status:</span>
+                            <span class="${status}">${status}</span>
+                        </div>
+                        <div class="device-data">
+                            <span>Last Update:</span>
+                            <span>${new Date(feed.created_at).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    `;
+                });
+
+                document.getElementById('loading').style.display = "none";
+                document.getElementById('deviceList').innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById('loading').textContent = "Load failed: " + err.message;
+            });
+        }
+
+        loadDevices();
+        setInterval(loadDevices, 15000);
+    </script>
+</body>
+</html>
